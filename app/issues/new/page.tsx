@@ -18,6 +18,7 @@ import { createIssueSchema } from '@/app/validationSchemas';
 import { z } from 'zod';
 import ErrorMessage from '@/app/components/ErrorMessage';
 import Spinner from '@/app/components/Spinner';
+import { on } from 'events';
 
 type IssueForm = z.infer<typeof createIssueSchema>;
 
@@ -34,6 +35,17 @@ const NewIssuePage = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setSubmitting] = useState(false);
 
+  const onSubmit = handleSubmit(async data => {
+    try {
+      setSubmitting(true);
+      await axios.post('/api/issues', data);
+      router.push('/issues');
+    } catch (error) {
+      setSubmitting(false);
+      setError('An unexpected error occurred. Please try again.');
+    }
+  });
+
   return (
     <div className="max-w-xl ">
       {error && (
@@ -41,19 +53,7 @@ const NewIssuePage = () => {
           <CalloutText>{error}</CalloutText>
         </CalloutRoot>
       )}
-      <form
-        className="space-y-3"
-        onSubmit={handleSubmit(async data => {
-          try {
-            setSubmitting(true);
-            await axios.post('/api/issues', data);
-            router.push('/issues');
-          } catch (error) {
-            setSubmitting(false);
-            setError('An unexpected error occurred. Please try again.');
-          }
-        })}
-      >
+      <form className="space-y-3" onSubmit={onSubmit}>
         <TextFieldRoot>
           <TextFieldInput placeholder="Title" {...register('title')} />
         </TextFieldRoot>
