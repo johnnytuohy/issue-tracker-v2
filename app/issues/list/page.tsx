@@ -8,33 +8,51 @@ import { ArrowUpIcon, ArrowDownIcon } from '@radix-ui/react-icons';
 
 interface Props {
   searchParams: {
-    status: Status;
-    orderBy: keyof Issue;
+    status?: Status;
+    orderBy?: keyof Issue;
     order?: 'asc' | 'desc';
   };
 }
 
 const IssuesPage = async ({ searchParams }: Props) => {
+  // Define valid columns for sorting
   const columns: { label: string; value: keyof Issue; className?: string }[] = [
     { label: 'Issue', value: 'title' },
     { label: 'Status', value: 'status', className: 'hidden md:table-cell' },
     { label: 'Created', value: 'createdAt', className: 'hidden md:table-cell' },
   ];
 
+  const validColumns = columns.map(column => column.value);
+  const validOrders: ('asc' | 'desc')[] = ['asc', 'desc'];
+
+  // Validate 'status' parameter
   const statuses = Object.values(Status);
-  const status = statuses.includes(searchParams.status)
-    ? searchParams.status
+  const status =
+    searchParams.status && statuses.includes(searchParams.status)
+      ? searchParams.status
+      : undefined;
+
+  // Validate 'orderBy' parameter, use undefined if invalid
+  const orderBy = validColumns.includes(searchParams.orderBy as keyof Issue)
+    ? searchParams.orderBy
     : undefined;
 
-  const orderBy = searchParams.orderBy || 'createdAt'; // Default to 'createdAt'
-  const order = searchParams.order || 'asc'; // Default to ascending order
+  // Validate 'order' parameter, use undefined if invalid
+  const order = validOrders.includes(searchParams.order as 'asc' | 'desc')
+    ? searchParams.order
+    : undefined;
 
+  // Default to 'createdAt' and 'asc' if no valid values are provided
+  const finalOrderBy = orderBy || 'createdAt';
+  const finalOrder = order || 'asc';
+
+  // Prisma query with valid sorting parameters
   const issues = await prisma.issue.findMany({
     where: {
       status,
     },
     orderBy: {
-      [orderBy]: order,
+      [finalOrderBy]: finalOrder,
     },
   });
 
@@ -55,17 +73,17 @@ const IssuesPage = async ({ searchParams }: Props) => {
                       ...searchParams,
                       orderBy: column.value,
                       order:
-                        column.value === searchParams.orderBy
-                          ? toggleOrder(order)
+                        column.value === finalOrderBy
+                          ? toggleOrder(finalOrder)
                           : 'asc', // Default to ascending if it's a new column sort
                     },
                   }}
                 >
                   {column.label}
                 </NextLink>
-                {column.value === searchParams.orderBy && (
+                {column.value === finalOrderBy && (
                   <>
-                    {order === 'asc' ? (
+                    {finalOrder === 'asc' ? (
                       <ArrowUpIcon className="inline" />
                     ) : (
                       <ArrowDownIcon className="inline" />
